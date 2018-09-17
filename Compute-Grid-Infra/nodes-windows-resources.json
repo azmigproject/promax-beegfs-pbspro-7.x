@@ -1,0 +1,167 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nodeSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "master settings object"
+      }
+    },
+    "nodeOSSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "master OS settings object"
+      }
+    },
+    "vmssName": {
+      "type": "string",
+      "metadata": {
+        "description": "String used as a base for naming resources. Must be 3-61 characters in length and globally unique across Azure. A hash is prepended to this string for some resources, and resource-specific information is appended."
+      },
+      "maxLength": 61
+    },
+    "instanceCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of VM instances (100 or less)."
+      },
+      "defaultValue": 1,
+      "maxValue": 40
+    },
+    "newStorageAccountSuffix": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for the Virtual Machine."
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "namingInfix": "[toLower(take(concat(parameters('vmssName'), uniqueString(resourceGroup().id)), 9))]",
+    "uniqueStringArray": [
+      "[concat(take(uniqueString(concat(resourceGroup().id, parameters('newStorageAccountSuffix'), '0')), 9), parameters('newStorageAccountSuffix'))]",
+      "[concat(take(uniqueString(concat(resourceGroup().id, parameters('newStorageAccountSuffix'), '1')), 9), parameters('newStorageAccountSuffix'))]",
+      "[concat(take(uniqueString(concat(resourceGroup().id, parameters('newStorageAccountSuffix'), '2')), 9), parameters('newStorageAccountSuffix'))]",
+      "[concat(take(uniqueString(concat(resourceGroup().id, parameters('newStorageAccountSuffix'), '3')), 9), parameters('newStorageAccountSuffix'))]",
+      "[concat(take(uniqueString(concat(resourceGroup().id, parameters('newStorageAccountSuffix'), '4')), 9), parameters('newStorageAccountSuffix'))]"
+    ],
+    "vhdContainers": [
+      "[concat('https://', variables('uniqueStringArray')[0], '.blob.core.windows.net/', variables('vhdContainerName'))]",
+      "[concat('https://', variables('uniqueStringArray')[1], '.blob.core.windows.net/', variables('vhdContainerName'))]",
+      "[concat('https://', variables('uniqueStringArray')[2], '.blob.core.windows.net/', variables('vhdContainerName'))]",
+      "[concat('https://', variables('uniqueStringArray')[3], '.blob.core.windows.net/', variables('vhdContainerName'))]",
+      "[concat('https://', variables('uniqueStringArray')[4], '.blob.core.windows.net/', variables('vhdContainerName'))]"
+    ],
+    // total storage account used for OSDisks in the VMSS is 2 + instance/30, for a max of 5 SA with 100 VMs.
+    "saCount": "[add(2, div(parameters('instanceCount'), 30))]",
+    "vhdContainerName": "[concat(variables('namingInfix'), 'vhd')]",
+    "osDiskName": "[concat(variables('namingInfix'), 'osdisk')]",
+    "vnetID": "[resourceId(parameters('nodeSettings').vnetRG, 'Microsoft.Network/virtualNetworks', parameters('nodeSettings').vnetName)]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('nodeSettings').subnetName)]",
+    "nicName": "[concat(variables('namingInfix'), 'nic')]",
+    "ipConfigName": "[concat(variables('namingInfix'), 'ipconfig')]",
+    "computeApiVersion": "2016-03-30",
+    "networkApiVersion": "2016-03-30",
+    "storageApiVersion": "2015-06-15",
+    "cnSetupScript": "cn-setup.ps1",
+    "vmScripts": {
+      "scriptsToDownload": [
+        "[uri(deployment().properties.templateLink.uri, '/cn-setup.ps1')]"
+      ],
+      "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File cn-setup.ps1 ', parameters('nodeSettings').MasterName, ' ', parameters('nodeOSSettings').adminUserName, ' ', parameters('adminPassword'))]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('uniqueStringArray')[copyIndex()]]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "copy": {
+        "name": "storageLoop",
+        "count": "[variables('saCount')]"
+      },
+      "properties": {
+        "accountType": "[parameters('nodeSettings').storageAccountType]"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachineScaleSets",
+      "name": "[parameters('vmssName')]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('computeApiVersion')]",
+      "dependsOn": [
+        "storageLoop"
+      ],
+      "sku": {
+        "name": "[parameters('nodeSettings').VMsku]",
+        "tier": "Standard",
+        "capacity": "[parameters('instanceCount')]"
+      },
+      "properties": {
+        "overprovision": "true",
+        "upgradePolicy": {
+          "mode": "Manual"
+        },
+        "virtualMachineProfile": {
+          "networkProfile": {
+            "networkInterfaceConfigurations": [
+              {
+                "name": "[variables('nicName')]",                
+                "properties": {
+                  "primary": "true",
+                  "ipConfigurations": [
+                    {
+                      "name": "[variables('ipConfigName')]",
+                      "properties": {
+                        "subnet": {                          
+                          "id": "[variables('subnetRef')]"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "osProfile": {
+            "computerNamePrefix": "[variables('namingInfix')]",
+            "adminUsername": "[parameters('nodeOSSettings').adminUserName]",
+            "adminPassword": "[parameters('adminPassword')]"
+          },
+          "storageProfile": {
+            "imageReference": "[parameters('nodeOSSettings').imageReference]",
+            "osDisk": {
+              "vhdContainers": "[take(variables('vhdContainers'),variables('saCount'))]",
+              "name": "[variables('osDiskName')]",
+              "caching": "ReadOnly",
+              "createOption": "FromImage"
+            }
+          },
+          "extensionProfile": {
+            "extensions": [
+              {
+                "name": "installWindowsCN",
+                "properties": {
+                  "publisher": "Microsoft.Compute",
+                  "type": "CustomScriptExtension",
+                  "typeHandlerVersion": "1.8",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                    "fileUris": "[variables('vmScripts').scriptsToDownload]",
+                    "commandToExecute": "[variables('vmScripts').commandToExecute]"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+

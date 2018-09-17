@@ -1,0 +1,174 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.1",
+  "parameters": {
+    "uniquePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This unique prefix will be used on all the objects created as part of this template."
+      }
+    },
+    "VMSSCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of VM ScaleSets (50 Max)."
+      },
+      "defaultValue": 1,
+      "maxValue": 50
+    },
+    "xferVMsku": {
+      "type": "string",
+      "defaultValue": "Standard_DS3_v2",
+      "allowedValues": [
+        "Standard_DS1_v2",
+        "Standard_DS2_v2",
+        "Standard_DS3_v2",
+        "Standard_DS4_v2",
+        "Standard_DS5_v2",
+        "Standard_DS11_v2",
+        "Standard_DS12_v2",
+        "Standard_DS13_v2",
+        "Standard_DS14_v2",
+        "Standard_DS15_v2"
+      ],
+      "metadata": {
+        "description": "sku to use only premium disks VMs are allowed"
+      }
+    },
+    "RGvnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the RG of the virtual network to use."
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "grid-vnet",
+      "metadata": {
+        "description": "Name of the virtual network to use for the transfer VM"
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "computeSubnet",
+      "metadata": {
+        "description": "Name of the subnet in the virtual network to use for the transfer VM"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username on all VMs."
+      }
+    },
+    "sshKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH rsa public key file as a string."
+      }
+    },
+    "imageLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "URL of the base custom image, in the format of https://accountname.blob.core.windows.net/container/ "
+      }
+    },
+    "imageBlobName": {
+      "type": "string",
+      "metadata": {
+        "description": "name of the blob containing the image in the format of dir/subdir/image.vhd "
+      }
+    },
+    "storageAccountKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Storage Account key for accessing the base custom image."
+      }
+    }
+  },
+  "variables": {
+    "uniquePrefix": "[toLower(parameters('uniquePrefix'))]",
+    "xferVMImage": "Ubuntu_16_10",
+    "transfer-templateUrl": "[uri(deployment().properties.templateLink.uri, 'transferVM.json')]",
+    "transferNodeSettings": {
+      "VMsku": "[parameters('xferVMsku')]",
+      "vnetRG": "[parameters('RGvnetName')]",
+      "vnetName": "[parameters('vnetName')]",
+      "subnetName": "[parameters('subnetName')]"
+    },
+    "transferNodeOSSettings": {
+      "adminUserName": "[parameters('adminUserName')]",
+      "sshKeyData": "[parameters('sshKeyData')]",
+      "imageReference": "[variables('computeNodeImages')[variables('xferVMImage')]]"
+    },
+    "computeNodeImages": {
+      "CentOS_7.2": {
+        "publisher": "OpenLogic",
+        "offer": "CentOS",
+        "sku": "7.2",
+        "version": "latest"
+      },
+      "Ubuntu_16_10": {
+        "publisher": "Canonical",
+        "offer": "UbuntuServer",
+        "sku": "16.10",
+        "version": "latest"
+      }
+    },
+    "deploymentApiVersion": "2015-11-01",
+    "storageApiVersion": "2015-06-15",
+    "storageAccountType": "Premium_LRS"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "comments": "Create one storage account per VMSS",
+      "name": "[concat(uniqueString(concat(resourceGroup().id, variables('uniquePrefix'), copyIndex())), variables('uniquePrefix'))]",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "copy": {
+        "name": "storageLoop",
+        "count": "[parameters('VMSSCount')]"
+      },
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "name": "[concat('transfer', variables('uniquePrefix'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('deploymentApiVersion')]",
+      "dependsOn": [
+        "storageLoop"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('transfer-templateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "uniquePrefix": {
+            "value": "[variables('uniquePrefix')]"
+          },
+          "nodeSettings": {
+            "value": "[variables('transferNodeSettings')]"
+          },
+          "nodeOSSettings": {
+            "value": "[variables('transferNodeOSSettings')]"
+          },
+          "imageLocation": {
+            "value": "[concat(parameters('imageLocation'), parameters('imageBlobName'))]"
+          },
+          "storageAccountKey": {
+            "value": "[parameters('storageAccountKey')]"
+          },
+          "saCount": {
+            "value": "[parameters('VMSSCount')]"
+          }
+        }
+      }
+    }
+  ]
+}
+

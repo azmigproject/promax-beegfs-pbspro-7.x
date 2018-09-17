@@ -1,0 +1,193 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "uniquePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This unique prefix will be used on all the objects created as part of this template."
+      }
+    },
+    "nodeSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "node settings object"
+      }
+    },
+    "nodeOSSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "node OS settings object"
+      }
+    },
+    "imageLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "URL of the base custom image, in the format of https://accountname.blob.core.windows.net/container/image.vhd."
+      }
+    },
+    "storageAccountKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Storage Account key for accessing the base custom image."
+      }
+    },
+    "saCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of SA where to upload the image"
+      }
+    }
+  },
+  "variables": {
+    "uniquePrefix": "[toLower(parameters('uniquePrefix'))]",
+    "vmName": "[concat('xfer', variables('uniquePrefix'))]",
+    "storageAccountType": "Premium_LRS",
+    "location": "[resourceGroup().location]",
+    "transferSA": "[concat(uniquestring(resourceGroup().id, variables('vmName')), variables('vmName'))]",
+    "osDiskName": "[concat(variables('vmName'), 'osdisk')]",
+    "vnetID": "[resourceId(parameters('nodeSettings').vnetRG, 'Microsoft.Network/virtualNetworks', parameters('nodeSettings').vnetName)]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('nodeSettings').subnetName)]",
+    "nicName": "[concat(variables('vmName'), 'nic')]",
+    "ipConfigName": "[concat(variables('vmName'), 'ipconfig')]",
+    "computeApiVersion": "2016-03-30",
+    "networkApiVersion": "2016-03-30",
+    "storageApiVersion": "2015-06-15",
+    "extensionApiVersion": "2015-06-15",
+    "deploymentApiVersion": "2015-11-01",
+    "setupScript": "install_headnode.sh",
+    "downloadTemplateURI": "[uri(deployment().properties.templateLink.uri, 'download.json')]",
+    "downloadScriptURI": "[uri(deployment().properties.templateLink.uri, 'download.sh')]",
+    "uploadTemplateURI": "[uri(deployment().properties.templateLink.uri, 'upload.json')]",
+    "uploadScriptURI": "[uri(deployment().properties.templateLink.uri, 'upload.sh')]",
+    "sshKeyPath": "[concat('/home/',parameters('nodeOSSettings').adminUserName,'/.ssh/authorized_keys')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('nicName')]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[variables('ipConfigName')]",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('vmName')]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('computeApiVersion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('transferSA'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('nodeSettings').VMsku]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('nodeOSSettings').adminUserName]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[variables('sshKeyPath')]",
+                  "keyData": "[parameters('nodeOSSettings').sshKeyData]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": "[parameters('nodeOSSettings').imageReference]",
+          "osDisk": {
+            "name": "[variables('osDiskName')]",
+            "vhd": {
+              "uri": "[concat('https://', variables('transferSA'), '.blob.core.windows.net/vhds/', variables('osDiskName'), '.vhd')]"
+            },
+            "caching": "ReadOnly",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('uniquePrefix'), 'script0')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('deploymentApiVersion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('downloadTemplateURI')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": { "value": "[resourceGroup().location]" },
+          "vmName": { "value": "[variables('vmName')]" },
+          "imageLocation": { "value": "[parameters('imageLocation')]" },
+          "storageAccountKey": { "value": "[parameters('storageAccountKey')]" },
+          "downloadScriptURI": { "value": "[variables('downloadScriptURI')]" }
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('uniquePrefix'), 'script', string(add(copyIndex(), 1)))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', variables('uniquePrefix'), 'script', copyIndex())]"
+      ],
+      "copy": {
+        "name": "uploadLoop",
+        "count": "[parameters('saCount')]"
+      },
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('uploadTemplateURI')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": { "value": "[variables('location')]" },
+          "vmName": { "value": "[variables('vmName')]" },
+          "uniquePrefix": { "value": "[variables('uniquePrefix')]" },
+          "index": { "value": "[copyIndex()]" },
+          "uploadScriptURI": { "value": "[variables('uploadScriptURI')]" }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('transferSA')]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "properties": {
+        "accountType": "[variables('storageAccountType')]"
+      }
+    }
+  ]
+}

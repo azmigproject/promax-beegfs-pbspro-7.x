@@ -1,0 +1,157 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "uniquePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This unique prefix will be used on all the objects created as part of this template."
+      }
+    },
+    "nodeSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "node settings object"
+      }
+    },
+    "nodeOSSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "node OS settings object"
+      }
+    },
+    "VMSSCount": {
+      "type": "int",
+      "defaultValue": 1,
+      "maxValue": 50,
+      "metadata": {
+        "Description": "VMSS count. 50 Max"
+      }
+    },
+    "capacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "maxValue": 20,
+      "metadata": {
+        "Description": "VMSS total capacity. 20 Max for custom image with over provisioning"
+      }
+    },
+    "blobName": {
+      "type": "string",
+      "metadata": {
+        "description": "The blob name containing the base image"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The admin password"
+      }
+    }
+  },
+  "variables": {
+    "storageAccountType": "Premium_LRS",
+    "location": "[resourceGroup().location]",
+    "vnetID": "[resourceId(parameters('nodeSettings').vnetRG, 'Microsoft.Network/virtualNetworks', parameters('nodeSettings').vnetName)]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('nodeSettings').subnetName)]",
+    "computeApiVersion": "2016-03-30",
+    "extensionApiVersion": "2015-06-15",
+    "sshKeyPath": "[concat('/home/',parameters('nodeOSSettings').adminUserName,'/.ssh/authorized_keys')]",
+    "vmScripts": {
+      "scriptsToDownload": [
+        "[parameters('nodeSettings').Script]"
+      ],
+      "commandToExecute": "[parameters('nodeSettings').CommandLine]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachineScaleSets",
+      "apiVersion": "[variables('computeApiVersion')]",
+      "name": "[concat(parameters('uniquePrefix'), padLeft(copyindex(), 2, '0'))]",
+      "location": "[variables('location')]",
+      "copy": {
+        "name": "deploymentLoop",
+        "count": "[parameters('VMSSCount')]"
+      },
+      "sku": {
+        "name": "[parameters('nodeSettings').VMsku]",
+        "tier": "Standard",
+        "capacity": "[parameters('capacity')]"
+      },
+      "properties": {
+        "overprovision": "true",
+        "upgradePolicy": {
+          "mode": "Manual"
+        },
+        "virtualMachineProfile": {
+          "storageProfile": {
+            "osDisk": {
+              "name": "vmssosdisk",
+              "caching": "ReadOnly",
+              "createOption": "FromImage",
+              "osType": "Linux",
+              "image": {
+                "uri": "[concat('https://',uniqueString(concat(resourceGroup().id, parameters('uniquePrefix'), copyIndex())), parameters('uniquePrefix'),'.blob.core.windows.net/vhds/',parameters('blobName'))]"
+              }
+            }
+          },
+          "osProfile": {
+            "computerNamePrefix": "[concat(parameters('uniquePrefix'), padLeft(copyindex(), 2, '0'))]",
+            "adminUsername": "[parameters('nodeOSSettings').adminUserName]",
+            "adminPassword": "[parameters('adminPassword')]",
+            "linuxConfiguration": {
+              "disablePasswordAuthentication": "false",
+              "ssh": {
+                "publicKeys": [
+                  {
+                    "path": "[variables('sshKeyPath')]",
+                    "keyData": "[parameters('nodeOSSettings').sshKeyData]"
+                  }
+                ]
+              }
+            }
+          },
+          "networkProfile": {
+            "networkInterfaceConfigurations": [
+              {
+                "name": "nic1",
+                "properties": {
+                  "primary": "true",
+                  "ipConfigurations": [
+                    {
+                      "name": "ip1",
+                      "properties": {
+                        "subnet": {
+                          "id": "[variables('subnetRef')]"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "extensionProfile": {
+            "extensions": [
+              {
+                "name": "specialize",
+                "properties": {
+                  "publisher": "Microsoft.Azure.Extensions",
+                  "type": "CustomScript",
+                  "typeHandlerVersion": "2.0",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                    "fileUris": "[variables('vmScripts').scriptsToDownload]",
+                    "commandToExecute": "[variables('vmScripts').commandToExecute]",
+                    "timestamp": 1234
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "commonSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "common settings object"
+      }
+    },
+    "networkSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "Network settings object"
+      }
+    },
+    "masterSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "master settings object"
+      }
+    },
+    "masterOSSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "master OS settings object"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for the Virtual Machine."
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "PremiumStorageMap": {
+      "none": {
+        "size": 0
+      },
+      "P10": {
+        "size": 128
+      },
+      "P20": {
+        "size": 512
+      },
+      "P30": {
+        "size": 1023
+      }
+    },
+    "vmScripts": {
+      "scriptsToDownload": [
+        "[uri(deployment().properties.templateLink.uri, 'master-setup.ps1')]"
+      ],
+      "commandToExecute": ""
+    },
+    "sharedAccountId": "[resourceId(parameters('commonSettings').RGStorageName, 'Microsoft.Storage/storageAccounts', parameters('commonSettings').DataSAName)]",
+    "computeApiVersion": "2016-04-30-preview",
+    "storageApiVersion": "2015-06-15"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[parameters('masterSettings').Name]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('computeApiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('masterSettings').VMsku]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('masterSettings').Name]",
+          "adminUsername": "[parameters('masterOSSettings').adminUserName]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": "[parameters('masterOSSettings').imageReference]",
+          "osDisk": {
+            "caching": "ReadOnly",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "diskSizeGB": "[variables('PremiumStorageMap')[parameters('masterSettings').dataDiskSize].size]",
+              "lun": "0",
+              "createOption": "Empty"
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('masterSettings').NicName)]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('masterSettings').DiagSAName,'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "resources": [
+        {
+          "name": "WindowsMasterExtension",
+          "type": "extensions",
+          "location": "[variables('location')]",
+          "apiVersion": "[variables('storageApiVersion')]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', parameters('masterSettings').Name)]"
+          ],
+          "tags": {
+            "displayName": "WindowsMasterExtension"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.8",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": "[variables('vmScripts').scriptsToDownload]",
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File master-setup.ps1 -StorageAccount ', parameters('commonSettings').DataSAName, ' -StorageKey ', listKeys(variables('sharedAccountId'), variables('storageApiVersion')).key1)]",
+              "timestamp": 12
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

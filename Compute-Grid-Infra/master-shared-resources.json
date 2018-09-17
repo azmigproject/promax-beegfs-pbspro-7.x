@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "networkSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "Network settings object"
+      }
+    },
+    "masterSettings": {
+      "type": "object",
+      "metadata": {
+        "Description": "Network settings object"
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "networkApiVersion": "2016-09-01",
+    "storageApiVersion": "2015-06-15",
+    "vnetID": "[resourceId(parameters('networkSettings').vnetRG, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').virtualNetworkName)]",
+    "infraSubnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('networkSettings').infraSubnet)]",
+    "ComputeSubnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('networkSettings').computeSubnet)]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[parameters('masterSettings').DiagSAName]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[parameters('masterSettings').publicIPAddressName]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('masterSettings').publicIPDomainName]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[parameters('masterSettings').NicName]",
+      "location": "[variables('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', parameters('masterSettings').publicIPAddressName)]"
+      ],
+      "properties": {
+        "primary": true,
+        "enableAcceleratedNetworking": true,
+        "ipConfigurations": [
+          {
+            "name": "[parameters('masterSettings').IPConfigName]",
+            "properties": {
+              "privateIPAllocationMethod": "Static", 
+               "privateIPAddress": "10.0.0.135",             
+              "subnet": {
+                "id": "[variables('ComputeSubnetRef')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSettings').nsgName)]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "masterFQDN": {
+      "value": "[reference(parameters('masterSettings').publicIPAddressName).dnsSettings.fqdn]",
+      "type": "string"
+    }
+  }
+}

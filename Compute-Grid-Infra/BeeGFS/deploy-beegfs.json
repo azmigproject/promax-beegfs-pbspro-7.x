@@ -1,0 +1,212 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.1",
+  "parameters": {
+    "nodeType": {
+      "type": "string",
+      "allowedValues": [
+        "both",
+        "meta",
+        "storage"
+      ],
+      "metadata": {
+        "description": "type of beegfs node to deploy"
+      }
+    },
+    "nodeCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of BeeGFS nodes (100 or less)."
+      },
+      "maxValue": 100
+    },
+    "VMsku": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_DS1_v2",
+        "Standard_DS2_v2",
+        "Standard_DS3_v2",
+        "Standard_DS4_v2",
+        "Standard_DS5_v2",
+        "Standard_DS11_v2",
+        "Standard_DS12_v2",
+        "Standard_DS13_v2",
+        "Standard_DS14_v2",
+        "Standard_DS15_v2"
+      ],
+      "metadata": {
+        "description": "sku to use for the storage nodes - only premium disks VMs are allowed"
+      }
+    },
+    "RGvnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the RG of the virtual network to use."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username on all VMs."
+      }
+    },
+    "sshKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH rsa public key file as a string."
+      }
+    },
+    "masterName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of master VM name"
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of vnet"
+      }
+    },
+    "storagesubnet": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of storagesubnet"
+      }
+    },
+    "storageDiskSize": {
+      "type": "string",
+      "allowedValues": [
+        "P10",
+        "P20",
+        "P30"
+      ],
+      "metadata": {
+        "description": "Premium storage disk size used for the storage services"
+      }
+    },
+    "nbStorageDisks": {
+      "type": "int",
+      "minValue": 2,
+      "maxValue": 8,
+      "metadata": {
+        "description": "Number of storage disks"
+      }
+    },
+    "metaDiskSize": {
+      "type": "string",
+      "allowedValues": [
+        "P10",
+        "P20",
+        "P30"
+      ],
+      "metadata": {
+        "description": "Premium storage disk size used for the metadata services"
+      }
+    },
+    "nbMetaDisks": {
+      "type": "int",
+      "minValue": 2,
+      "maxValue": 6,
+      "metadata": {
+        "description": "Number of metadate disks"
+      }
+    },
+    "customDomain": {
+      "type": "string",
+      "metadata": {
+        "description": "custom domain name to use for name resolution"
+      }
+    }
+  },
+  "variables": {
+    "PremiumStorageMap": {
+      "P10": {
+        "size": 128
+      },
+      "P20": {
+        "size": 512
+      },
+      "P30": {
+        "size": 1023
+      }
+    },
+    "vmImage": "CentOS_7.4",
+    "deploymentApiVersion": "2015-11-01",
+    "beeGFSNodeSettings": {
+      "VMsku": "[parameters('VMsku')]",
+      "vnetRG": "[parameters('RGvnetName')]",
+      "vnetName": "[parameters('vnetName')]",
+      "subnetName": "[parameters('storagesubnet')]",
+      "MasterName": "[parameters('masterName')]",
+      "avsetName": "beeGFSav",
+      "storageDiskSize": "[variables('PremiumStorageMap')[parameters('storageDiskSize')].size]",
+      "numStorageDisks": "[parameters('nbStorageDisks')]",
+      "metadataDiskSize": "[variables('PremiumStorageMap')[parameters('metaDiskSize')].size]",
+      "numMetadataDisks": "[parameters('nbMetaDisks')]",
+      "nodeType": "[parameters('nodeType')]",
+      "customDomain": "[parameters('customDomain')]"
+    },
+    "computeNodeImages": {
+      "CentOS_7.4": {
+        "publisher": "OpenLogic",
+        "offer": "CentOS",
+        "sku": "7.4",
+        "version": "latest"
+      },
+      "RHEL_7.2": {
+        "publisher": "RedHat",
+        "offer": "RHEL",
+        "sku": "7.2",
+        "version": "latest"
+      }
+    },
+    "nodeOSSettings": {
+      "adminUserName": "[parameters('adminUserName')]",
+      "sshKeyData": "[parameters('sshKeyData')]",
+      "imageReference": "[variables('computeNodeImages')[variables('vmImage')]]"
+    },
+    "beeGFSNode-templateUrl": "[uri(deployment().properties.templateLink.uri, 'beegfs-node-resources.json')]",
+    "avApiVersion": "2015-06-15"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('beeGFSNodeSettings').avsetName]",
+      "apiVersion": "[variables('avApiVersion')]",
+      "location": "[resourceGroup().location]",
+      "properties": { }
+    },
+    {
+      "name": "[concat('create-BeeGFS-', variables('beeGFSNodeSettings').nodeType, padLeft(string(copyIndex()), 2, '0'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('deploymentApiVersion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/availabilitySets/', variables('beeGFSNodeSettings').avsetName)]"
+      ],
+      "copy": {
+        "name": "nodeIndex",
+        "count": "[parameters('NodeCount')]"
+      },
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('beeGFSNode-templateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "nodeSettings": {
+            "value": "[variables('beeGFSNodeSettings')]"
+          },
+          "nodeOSSettings": {
+            "value": "[variables('nodeOSSettings')]"
+          },
+          "vmIndex": {
+            "value": "[padLeft(string(copyIndex()), 2, '0')]"
+          }
+        }
+      }
+    }
+  ]
+}
+

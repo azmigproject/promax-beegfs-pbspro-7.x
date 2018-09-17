@@ -1,0 +1,164 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.1",
+  "parameters": {
+    "uniquePrefix": {
+      "type": "string",
+      "maxLength": 8,
+      "metadata": {
+        "description": "This unique prefix will be used on all the objects created as part of this template."
+      }
+    },
+    "VMSSCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of VM ScaleSets (50 Max)."
+      },
+      "defaultValue": 1,
+      "maxValue": 50
+    },
+    "instanceCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of VM instances per Scaleset (20 or less for custom images and overprovisioning)."
+      },
+      "defaultValue": 2,
+      "maxValue": 20
+    },
+    "computeVMsku": {
+      "type": "string",
+      "defaultValue": "Standard_D3_v2",
+      "allowedValues": [
+        "Standard_D1_v2",
+        "Standard_D2_v2",
+        "Standard_D3_v2",
+        "Standard_D4_v2",
+        "Standard_D5_v2",
+        "Standard_D11_v2",
+        "Standard_D12_v2",
+        "Standard_D13_v2",
+        "Standard_D14_v2",
+        "Standard_D15_v2"
+      ],
+      "metadata": {
+        "description": "sku to use for compute nodes"
+      }
+    },
+    "RGvnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the RG of the virtual network to use."
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "grid-vnet",
+      "metadata": {
+        "description": "Name of the virtual network to use for the VMSS"
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "computeSubnet",
+      "metadata": {
+        "description": "Name of the subnet in the virtual network to use for the VMSS"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username on all VMs."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password on all VMs."
+      }
+    },
+    "sshKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH rsa public key file as a string."
+      }
+    },
+    "imageBlobName": {
+      "type": "string",
+      "metadata": {
+        "description": "name of the blob containing the image in the format of dir/subdir/image.vhd "
+      }
+    },
+    "script": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "URL of the script to download as a post script install"
+      }
+    },
+    "cmdLine": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Cmdline to run"
+      }
+    }
+  },
+  "variables": {
+    "uniquePrefix": "[toLower(parameters('uniquePrefix'))]",
+    "nodes-templateUrl": "[uri(deployment().properties.templateLink.uri, 'nodes-resources.json')]",
+    "computeNodeSettings": {
+      "VMsku": "[parameters('computeVMsku')]",
+      "vnetRG": "[parameters('RGvnetName')]",
+      "vnetName": "[parameters('vnetName')]",
+      "subnetName": "[parameters('subnetName')]",
+      "Script": "[parameters('script')]",
+      "CommandLine": "[parameters('cmdLine')]"
+    },
+    "computeNodeOSSettings": {
+      "adminUserName": "[parameters('adminUserName')]",
+      "sshKeyData": "[parameters('sshKeyData')]",
+      "imageReference": ""
+    },
+    "deploymentApiVersion": "2015-11-01"
+  },
+  "resources": [
+    {
+      "name": "[concat('vmss', variables('uniquePrefix'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('deploymentApiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('nodes-templateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "uniquePrefix": {
+            "value": "[variables('uniquePrefix')]"
+          },
+          "nodeSettings": {
+            "value": "[variables('computeNodeSettings')]"
+          },
+          "nodeOSSettings": {
+            "value": "[variables('computeNodeOSSettings')]"
+          },
+          "VMSSCount": {
+            "value": "[parameters('VMSSCount')]"
+          },
+          "capacity": {
+            "value": "[parameters('instanceCount')]"
+          },
+          "blobName": {
+            "value": "[parameters('imageBlobName')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          }
+        }
+      }
+    }
+  ]
+}
+
