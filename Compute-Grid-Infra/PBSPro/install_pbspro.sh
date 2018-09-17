@@ -64,7 +64,7 @@ EOF
     echo "in set_DNS, updated nsswitch resolv.conf, restarting network service"
 	service network restart
 }
-set_DNS
+#set_DNS
 enable_kernel_update()
 {
 	# enable kernel update
@@ -98,8 +98,8 @@ install_pbspro()
 	yum install -y libXt-devel libXext
 
 
-    wget -O /mnt/CentOS_6.zip https://solliancehpcstrg.blob.core.windows.net/pbspro/CentOS_6.zip
-    unzip /mnt/CentOS_6.zip -d /mnt
+    wget -O /mnt/CentOS_7.zip  http://wpc.23a7.iotacdn.net/8023A7/origin2/rl/PBS-Open/CentOS_7.zip
+    unzip /mnt/CentOS_7.zip -d /mnt
        
     if is_master; then
 
@@ -111,7 +111,7 @@ install_pbspro()
 		# Required on 7.2 as the libical lib changed
 		ln -s /usr/lib64/libical.so.1 /usr/lib64/libical.so.0
 
-	    rpm -ivh --nodeps /mnt/CentOS_6/pbspro-server-14.1.2-0.x86_64.rpm
+	     rpm -ivh --nodeps /mnt/CentOS_7/pbspro-server-14.1.0-13.1.x86_64.rpm
 
 
         cat > /etc/pbs.conf << EOF
@@ -147,7 +147,7 @@ EOF
         yum install -y hwloc-devel expat-devel tcl-devel expat
 
         
-	    rpm -ivh --nodeps /mnt/CentOS_6/pbspro-execution-14.1.2-0.x86_64.rpm
+	    rpm -ivh --nodeps /mnt/CentOS_7/pbspro-execution-14.1.0-13.1.x86_64.rpm
 
         cat > /etc/pbs.conf << EOF
 PBS_SERVER=$MASTER_HOSTNAME
