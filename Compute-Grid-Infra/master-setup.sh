@@ -161,7 +161,10 @@ nis_server()
 	chkconfig ypbind on	
 	grep | /usr/lib64/yp/ypinit -m
 	sleep 10
+	service NetworkManager stop
 	systemctl start ypbind 
+	service NetworkManager start
+
 	cd /var/yp
 	/usr/lib64/yp/makedbm -u ${NIS_DOMAIN}/hosts.byname> mymap.temp
 	create_nismap
