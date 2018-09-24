@@ -165,9 +165,12 @@ setup_nisclient()
 	echo "NISDOMAIN=${NIS_SERVER_DOMAIN}" >> /etc/sysconfig/network
 	echo "${NIS_SERVER_IP} main.${NIS_SERVER_DOMAIN} main" >> /etc/hosts
 	echo "domain ${NIS_SERVER_DOMAIN} server main.${NIS_SERVER_DOMAIN}" >> /etc/yp.conf
+	authconfig --enablenis --nisdomain=${NIS_SERVER_DOMAIN} --nisserver=main.${NIS_SERVER_DOMAIN} --enablemkhomedir --update
 	setup_nisdns
 	systemctl start rpcbind
+	service NetworkManager stop
 	systemctl start ypbind 
+	service NetworkManager start
 	chkconfig ypbind on
 	chkconfig rpcbind on 	
 }
