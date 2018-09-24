@@ -149,11 +149,11 @@ nis_server()
 	echo "NISDOMAIN=${NIS_DOMAIN}" >> /etc/sysconfig/network
 	echo "$hostip main.${NIS_DOMAIN} main" >> /etc/hosts
 	echo "domain ${NIS_DOMAIN} server main.${NIS_DOMAIN}" >> /etc/yp.conf
-	/etc/init.d/network restart
-	/etc/init.d/rpcbind start	
-	/etc/init.d/ypserv  start
-	/etc/init.d/ypxfrd  start
-	/etc/init.d/yppasswdd start	
+	#/etc/init.d/network restart
+	systemctl  start rpcbind
+	systemctl  start ypserv
+	systemctl  start ypxfrd
+	systemctl  start yppasswdd	
 	chkconfig rpcbind on 
 	chkconfig ypserv on 
 	chkconfig ypxfrd on 
@@ -161,9 +161,7 @@ nis_server()
 	chkconfig ypbind on	
 	grep | /usr/lib64/yp/ypinit -m
 	sleep 10
-	/etc/init.d/ypbind start
-	#/etc/init.d/rpcbind restart
-	#/etc/init.d/ypbind restart	  
+	systemctl  start ypbind 
 	cd /var/yp
 	/usr/lib64/yp/makedbm -u ${NIS_DOMAIN}/hosts.byname> mymap.temp
 	create_nismap
