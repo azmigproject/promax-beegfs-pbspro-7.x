@@ -166,8 +166,8 @@ setup_nisclient()
 	echo "${NIS_SERVER_IP} main.${NIS_SERVER_DOMAIN} main" >> /etc/hosts
 	echo "domain ${NIS_SERVER_DOMAIN} server main.${NIS_SERVER_DOMAIN}" >> /etc/yp.conf
 	setup_nisdns
-	/etc/init.d/rpcbind start
-	/etc/init.d/ypbind start
+	systemctl start rpcbind
+	systemctl start ypbind 
 	chkconfig ypbind on
 	chkconfig rpcbind on 	
 }
