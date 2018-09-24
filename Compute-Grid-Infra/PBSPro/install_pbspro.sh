@@ -64,7 +64,7 @@ EOF
     echo "in set_DNS, updated nsswitch resolv.conf, restarting network service"
 	service network restart
 }
-set_DNS
+#set_DNS
 enable_kernel_update()
 {
 	# enable kernel update
