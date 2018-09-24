@@ -230,7 +230,9 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
-          "vmName": { "value": "[parameters('masterSettings').Name]" }
+          "vmName": { "value": "[parameters('masterSettings').Name]" },
+          "subnetaddressRanges": { "value": "[parameters('masterSettings').subnetaddressRanges]" },
+          "nisDomainName":  { "value": "[parameters('masterSettings').nisDomainName]" }
         }
       }
     },

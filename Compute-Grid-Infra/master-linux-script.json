@@ -7,14 +7,38 @@
       "metadata": {
         "Description": "vmName to apply the script"
       }
+    },
+    "subnetaddressRanges": {
+      "type": "string",
+      "metadata": {
+        "Description": "subnetaddressRanges to apply the script"
+      }
+    },
+      "nisDomainName": {
+      "type": "string",
+      "metadata": {
+        "Description": "subnetaddressRanges to apply the script"
+      }
     }
   },
   "variables": {
+    "ScriptsOptions": {
+      "none": {
+        "params": ""
+      },
+      "subnetaddressRanges": {
+        "params": "[concat(' -j ', parameters('subnetaddressRanges'))]"
+      },
+      "nisDomainName": {
+        "params": "[concat(' -l ', parameters('nisDomainName'))]"
+      }
+    },
+    "mastersetupscript": "master-setup.sh",
     "vmScripts": {
       "scriptsToDownload": [
         "[uri(deployment().properties.templateLink.uri, 'master-setup.sh')]"
       ],
-      "commandToExecute": "bash master-setup.sh"
+      "commandToExecute": "[concat( 'bash ', variables('mastersetupscript'), variables('ScriptsOptions')['subnetaddressRanges'].params, variables('ScriptsOptions')['nisDomainName'].params)]"
     },
     "extensionApiVersion": "2015-06-15"
   },

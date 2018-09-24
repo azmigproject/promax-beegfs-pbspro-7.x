@@ -4,17 +4,23 @@
 log()
 {
 	echo "$1"
+	
 }
 
-while getopts :a:k:u:t:p optname; do
-  log "Option $optname set with value ${OPTARG}"
-  
+while getopts :a:k:j:l:u:t:p optname; do
+  log "Option $optname set with value ${OPTARG}"  
   case $optname in
     a)  # storage account
 		export AZURE_STORAGE_ACCOUNT=${OPTARG}
 		;;
     k)  # storage key
 		export AZURE_STORAGE_ACCESS_KEY=${OPTARG}
+		;;
+	j)  # ip ranges
+		export ADDRESS_SPACE_LIST=${OPTARG}
+		;;
+	l)  # ip ranges
+		export NIS_DOMAIN=${OPTARG}
 		;;
   esac
 done
@@ -105,7 +111,68 @@ mount_nfs()
 	service nfs start
 		
 }
-
+create_nismap()
+{		
+	IFS=',' read -ra ADDR <<< "$ADDRESS_SPACE_LIST"
+        for i in "${ADDR[@]}"; do
+			 Suffix="$(cut -d'/' -f2 <<<$i)"
+			 IP="$(cut -d'/' -f1 <<<$i)"
+			 digit1="$(cut -d. -f1 <<<$IP)"
+			 digit2="$(cut -d. -f2 <<<$IP)"
+			 digit3="$(cut -d. -f3 <<<$IP)"
+			 digit4="$(cut -d. -f4 <<<$IP)"
+			 BIT=`expr 32 - $Suffix`
+			 value=1
+			for j in `seq $BIT`
+			do
+		        value=$(( $value * 2 ))
+			done
+			for l in `seq $value`
+			do
+				echo "host-$digit1-$digit2-$digit3-$digit4  $digit1.$digit2.$digit3.$digit4" >>mymap.temp
+				digit4=$((digit4=digit4+1))
+				rem=$(($l % 256))
+				if [ $rem == 0 ]; then
+				        digit3=$((digit3=digit3+1))
+				        digit4=0
+				fi
+			done
+        done
+}
+nis_server()
+{
+	
+	SERVER_IP="$(ip addr show eth0 | grep 'inet ' | cut -f2 | awk '{ print $2}')"
+    hostip="$(echo ${SERVER_IP} | sed 's\/.*\\g')"	
+	yum -y install ypserv rpcbind ypbind
+	ypdomainname ${NIS_DOMAIN}
+	echo "NISDOMAIN=${NIS_DOMAIN}" >> /etc/sysconfig/network
+	echo "$hostip main.${NIS_DOMAIN} main" >> /etc/hosts
+	echo "domain ${NIS_DOMAIN} server main.${NIS_DOMAIN}" >> /etc/yp.conf
+	/etc/init.d/network restart
+	/etc/init.d/rpcbind start	
+	/etc/init.d/ypserv  start
+	/etc/init.d/ypxfrd  start
+	/etc/init.d/yppasswdd start	
+	chkconfig rpcbind on 
+	chkconfig ypserv on 
+	chkconfig ypxfrd on 
+	chkconfig yppasswdd on
+	chkconfig ypbind on	
+	grep | /usr/lib64/yp/ypinit -m
+	sleep 10
+	/etc/init.d/ypbind start
+	#/etc/init.d/rpcbind restart
+	#/etc/init.d/ypbind restart	  
+	cd /var/yp
+	/usr/lib64/yp/makedbm -u ${NIS_DOMAIN}/hosts.byname> mymap.temp
+	create_nismap
+	echo "${MASTER_NAME}  $hostip">> /var/yp/mymap.temp
+	/usr/lib64/yp/makedbm mymap.temp ${NIS_DOMAIN}/hosts.byname
+	yppush hosts.byname	
+	make
+}
+nis_server
 mount_nfs_suse()
 {
 	log "install NFS"

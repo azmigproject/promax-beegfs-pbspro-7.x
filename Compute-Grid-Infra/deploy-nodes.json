@@ -79,7 +79,7 @@
       },
       "maxLength": 30
     },
-    "dnsServerName": {
+    "dnsServerDomainName": {
       "type": "string",
       "metadata": {
         "description": "DNS server name"
@@ -87,6 +87,20 @@
       "maxLength": 40
     },
     "dnsServerIP": {
+      "type": "string",
+      "metadata": {
+        "description": "DNS server ip"
+      },
+      "maxLength": 20
+    },
+     "nisServerDomainName": {
+      "type": "string",
+      "metadata": {
+        "description": "DNS server name"
+      },
+      "maxLength": 40
+    },
+    "nisDomainIP": {
       "type": "string",
       "metadata": {
         "description": "DNS server ip"  
@@ -124,7 +138,8 @@
         "CentOS-HPC_7.1",
         "CentOS-HPC_6.8",
         "SLES12-HPC",
-        "RHEL_7.2",
+          "RHEL_6.9",
+          "RHEL_7.4",
         "W2012R2",
         "CustomLinux",
         "CustomWindows"
@@ -233,8 +248,10 @@
       "nasname": "[parameters('nasName')]",
       "nasdevice": "[parameters('nasDevice')]",
       "mountPoint": "[parameters('nasMountPoint')]",
-      "dnsServerName": "[parameters('dnsServerName')]",
+      "dnsServerName": "[parameters('dnsServerDomainName')]",
       "dnsServerIP": "[parameters('dnsServerIP')]",
+      "nisDomainName": "[parameters('nisServerDomainName')]",
+      "nisDomainIP": "[parameters('nisDomainIP')]",
       "scheduler": "[parameters('scheduler')]",
       "monitoring": "[parameters('monitoring')]"
     },
@@ -263,7 +280,10 @@
       "SLES12-HPC": {
         "os": "linux"
       },
-      "RHEL_7.2": {
+      "RHEL_6.9": {
+        "os": "linux"
+      },
+      "RHEL_7.4": {
         "os": "linux"
       },
       "CustomLinux": {
@@ -319,12 +339,18 @@
         "sku": "7.3",
         "version": "latest"
       },
-      "RHEL_7.2": {
+      "RHEL_6.9": {
         "publisher": "RedHat",
         "offer": "RHEL",
-        "sku": "7.2",
+        "sku": "6.9",
         "version": "latest"
       },
+      "RHEL_7.4": {
+        "publisher": "RedHat",
+        "offer": "RHEL",
+        "sku": "7.4",
+        "version": "latest"
+      } ,
       "SLES12-HPC": {
         "publisher": "SUSE",
         "offer": "SLES-HPC",

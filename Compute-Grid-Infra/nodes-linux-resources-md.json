@@ -96,7 +96,13 @@
       },
       "dnsServerIP": {
         "params": "[concat(' -g ', parameters('nodeSettings').dnsServerIP)]"
-      },       
+      },
+      "nisDomainName": {
+        "params": "[concat(' -h ', parameters('nodeSettings').nisDomainName)]"
+      },
+      "nisDomainIP": {
+        "params": "[concat(' -i ', parameters('nodeSettings').nisDomainIP)]"
+      },        
       "nfsservername": {
         "params": "[concat(' -k ', parameters('nodeSettings').nfsservername)]"
       },
@@ -114,7 +120,7 @@
         "[uri(deployment().properties.templateLink.uri, 'otherstorage/other_nas.sh')]",
         "[uri(deployment().properties.templateLink.uri, 'Ganglia/install_ganglia.sh')]"
       ],
-      "commandToExecute": "[concat('bash ', variables('cnSetupScript'), variables('ScriptsOptions')['master'].params, variables('ScriptsOptions')['nasname'].params, variables('ScriptsOptions')['nasdevice'].params, variables('ScriptsOptions')['nasmount'].params, variables('ScriptsOptions')['dnsServerName'].params, variables('ScriptsOptions')['dnsServerIP'].params, variables('ScriptsOptions')[parameters('nodeSettings').scheduler].params, variables('ScriptsOptions')[parameters('nodeSettings').sharedStorage].params, variables('ScriptsOptions')[parameters('nodeSettings').monitoring].params, variables('ScriptsOptions')['postinstall'].params, variables('ScriptsOptions')['nfsservername'].params)]"
+      "commandToExecute": "[concat('bash ', variables('cnSetupScript'), variables('ScriptsOptions')['master'].params, variables('ScriptsOptions')['nasname'].params, variables('ScriptsOptions')['nasdevice'].params, variables('ScriptsOptions')['nasmount'].params, variables('ScriptsOptions')['dnsServerName'].params, variables('ScriptsOptions')['dnsServerIP'].params,variables('ScriptsOptions')['nisDomainName'].params,variables('ScriptsOptions')['nisDomainIP'].params, variables('ScriptsOptions')[parameters('nodeSettings').scheduler].params, variables('ScriptsOptions')[parameters('nodeSettings').sharedStorage].params, variables('ScriptsOptions')[parameters('nodeSettings').monitoring].params, variables('ScriptsOptions')['postinstall'].params, variables('ScriptsOptions')['nfsservername'].params)]"
     },
     "sshKeyPath": "[concat('/home/',parameters('nodeOSSettings').adminUserName,'/.ssh/authorized_keys')]"
   },

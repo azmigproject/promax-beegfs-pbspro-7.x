@@ -83,12 +83,19 @@
       },
       "maxLength": 20
     },
-     "addressRange": {
+     "nisDomainName": {
       "type": "string",
       "metadata": {
-        "description": "Addres range for DNS entries in NIS database"  
+        "description": "Provide domain name to configure NIS server using it."
       },
       "maxLength": 20
+    },
+     "subnetaddressRanges": {
+      "type": "string",
+      "metadata": {
+        "description": "To provide multiple Address range use comma it will be use to create map for DNS entries in NIS database"  
+      },
+      "maxLength": 100
     },
     "dataDiskSize": {
       "type": "string",
@@ -223,7 +230,9 @@
       "mountPoint": "[parameters('nasMountPoint')]",
       "dnsServerName": "[parameters('dnsServerName')]",
       "dnsServerIP": "[parameters('dnsServerIP')]",
+      "nisDomainName": "[parameters('nisDomainName')]",
       "scheduler": "[parameters('scheduler')]",
+      "subnetaddressRanges": "[parameters('subnetaddressRanges')]",
       "dataDiskSize": "[parameters('dataDiskSize')]",
       "nbDataDisks": "[parameters('nbDataDisks')]"
     },
