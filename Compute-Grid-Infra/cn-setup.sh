@@ -158,21 +158,37 @@ EOF
 	service network restart
 }
 
+install_lis_in_cron()
+{
+	cat >  /root/nisclient_restart.sh << "EOF"
+#!/bin/bash
+	service NetworkManager stop
+	systemctl restart ypbind 
+	service NetworkManager start
+EOF
+	chmod 700 /root/nisclient_restart.sh
+	crontab -l > LIScron
+	echo "@reboot /root/nisclient_restart.sh >>/root/log.txt" >> NIScron
+	crontab NIScron
+	rm NIScron
+}
+
 setup_nisclient()
 {
 	yum -y install rpcbind ypbind
 	ypdomainname ${NAS_NAME}
 	echo "NISDOMAIN=${NIS_SERVER_DOMAIN}" >> /etc/sysconfig/network
 	echo "${NIS_SERVER_IP} main.${NIS_SERVER_DOMAIN} main" >> /etc/hosts
-	echo "domain ${NIS_SERVER_DOMAIN} server main.${NIS_SERVER_DOMAIN}" >> /etc/yp.conf
-	authconfig --enablenis --nisdomain=${NIS_SERVER_DOMAIN} --nisserver=main.${NIS_SERVER_DOMAIN} --enablemkhomedir --update
+	echo "domain ${NIS_SERVER_DOMAIN} server main.${NIS_SERVER_DOMAIN}" >> /etc/yp.conf	
 	setup_nisdns
-	systemctl start rpcbind
+	systemctl start rpcbind ypbind 
+	systemctl enable rpcbind ypbind
 	service NetworkManager stop
-	systemctl start ypbind 
+	systemctl restart ypbind 
 	service NetworkManager start
 	chkconfig ypbind on
 	chkconfig rpcbind on 	
+	install_lis_in_cron
 }
 
 setup_user()
