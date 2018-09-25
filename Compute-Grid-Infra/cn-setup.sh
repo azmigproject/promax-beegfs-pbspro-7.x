@@ -160,15 +160,8 @@ EOF
 
 install_lis_in_cron()
 {
-	cat >  /root/nisclient_restart.sh << "EOF"
-#!/bin/bash
-	service NetworkManager stop
-	systemctl restart ypbind 
-	service NetworkManager start
-EOF
-	chmod 700 /root/nisclient_restart.sh
 	crontab -l > NIScron
-	echo "@reboot /root/nisclient_restart.sh >>/root/log.txt" >> NIScron
+	echo "@reboot /root/restart_ypbind.sh >>/root/NISlog.txt" >> NIScron
 	crontab NIScron
 	rm NIScron
 }
@@ -187,7 +180,8 @@ setup_nisclient()
 	systemctl restart ypbind 
 	service NetworkManager start
 	chkconfig ypbind on
-	chkconfig rpcbind on 	
+	chkconfig rpcbind on 
+	mv /var/lib/waagent/custom-script/download/1/restart_ypbind.sh ~	
 	install_lis_in_cron
 }
 
