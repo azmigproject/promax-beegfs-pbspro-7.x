@@ -167,7 +167,7 @@ install_lis_in_cron()
 	service NetworkManager start
 EOF
 	chmod 700 /root/nisclient_restart.sh
-	crontab -l > LIScron
+	crontab -l > NIScron
 	echo "@reboot /root/nisclient_restart.sh >>/root/log.txt" >> NIScron
 	crontab NIScron
 	rm NIScron
