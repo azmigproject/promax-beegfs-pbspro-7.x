@@ -117,6 +117,7 @@
         "[uri(deployment().properties.templateLink.uri, 'BeeGFS/install_beegfs.sh')]",
         "[uri(deployment().properties.templateLink.uri, 'PBSPro/install_pbspro.sh')]",
         "[uri(deployment().properties.templateLink.uri, 'PBSPro/pbs_selfregister.sh')]",
+        "[uri(deployment().properties.templateLink.uri, 'PBSPro/restart_ypbind.sh')]",
         "[uri(deployment().properties.templateLink.uri, 'otherstorage/other_nas.sh')]",
         "[uri(deployment().properties.templateLink.uri, 'Ganglia/install_ganglia.sh')]"
       ],
