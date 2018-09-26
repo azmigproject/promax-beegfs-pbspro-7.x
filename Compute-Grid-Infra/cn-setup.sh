@@ -155,7 +155,7 @@ EOF
 	#sed -i  "s/networks:   files/networks:   files nis [NOTFOUND=return]/g"  /etc/nsswitch.conf
 	#sed -i  "s/hosts:      files dns/hosts: files dns [NOTFOUND=return]/g"  /etc/nsswitch.conf
     echo "in set_DNS, updated nsswitch resolv.conf, restarting network service"
-	
+	service network restart
 }
 
 start_networkservice_in_cron()
@@ -163,6 +163,7 @@ start_networkservice_in_cron()
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
  systemctl start NetworkManager.service
+ mount -a
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
@@ -185,7 +186,6 @@ setup_nisclient()
 	systemctl disable NetworkManager.service
 	systemctl restart ypbind 
 	systemctl start NetworkManager.service
-	service NetworkManager start
 	chkconfig ypbind on
 	chkconfig rpcbind on
 	start_networkservice_in_cron
@@ -208,7 +208,6 @@ setup_user()
 
 	echo "$MASTER_NAME:$SHARE_HOME $SHARE_HOME    nfs    rw,vers=3,auto,_netdev 0 0" >> /etc/fstab
     echo "$NFS_SERVER_NAME:$NAS_DEVICE $NAS_MOUNT nfs rsize=65536,wsize=65536,_netdev,nofail 0 0" >> /etc/fstab
-	sleep 10
 	mount -a
 	mount
    
@@ -290,5 +289,6 @@ if [ -n "$POST_INSTALL_COMMAND" ]; then
 fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
-#shutdown -r +1 &
-#exit 0
+
+shutdown -r +1 &
+exit 0
