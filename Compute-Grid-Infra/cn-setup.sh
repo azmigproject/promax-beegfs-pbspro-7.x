@@ -207,6 +207,7 @@ setup_user()
 
 	echo "$MASTER_NAME:$SHARE_HOME $SHARE_HOME    nfs    rw,vers=3,auto,_netdev 0 0" >> /etc/fstab
     echo "$NFS_SERVER_NAME:$NAS_DEVICE $NAS_MOUNT nfs rsize=65536,wsize=65536,_netdev,nofail 0 0" >> /etc/fstab
+	sleep 10
 	mount -a
 	mount
    
@@ -288,6 +289,6 @@ if [ -n "$POST_INSTALL_COMMAND" ]; then
 fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
-
+mount -a
 shutdown -r +1 &
 exit 0
