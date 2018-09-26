@@ -185,6 +185,7 @@ setup_nisclient()
 	systemctl disable NetworkManager.service
 	systemctl restart ypbind 
 	systemctl start NetworkManager.service
+	service NetworkManager start
 	chkconfig ypbind on
 	chkconfig rpcbind on
 	start_networkservice_in_cron
@@ -289,6 +290,5 @@ if [ -n "$POST_INSTALL_COMMAND" ]; then
 fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
-mount -a
-shutdown -r +1 &
-exit 0
+#shutdown -r +1 &
+#exit 0
