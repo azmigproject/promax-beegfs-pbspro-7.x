@@ -184,7 +184,7 @@ setup_nisclient()
 	systemctl stop NetworkManager.service
 	systemctl disable NetworkManager.service
 	systemctl restart ypbind 
-	service NetworkManager start
+	systemctl start NetworkManager.service
 	chkconfig ypbind on
 	chkconfig rpcbind on
 	start_networkservice_in_cron
