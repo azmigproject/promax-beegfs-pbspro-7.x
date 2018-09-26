@@ -163,7 +163,6 @@ start_networkservice_in_cron()
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
  systemctl start NetworkManager.service
- mount -a
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
@@ -182,7 +181,7 @@ setup_nisclient()
 	setup_nisdns
 	systemctl start rpcbind ypbind 
 	systemctl enable rpcbind ypbind
-	systemctl stop NetworkManager.service	
+	service NetworkManager stop		
 	systemctl restart ypbind 
 	systemctl start NetworkManager.service
 	chkconfig ypbind on
@@ -209,7 +208,7 @@ setup_user()
     echo "$NFS_SERVER_NAME:$NAS_DEVICE $NAS_MOUNT nfs rsize=65536,wsize=65536,_netdev,nofail 0 0" >> /etc/fstab
 	mount -a
 	mount
-   systemctl disable NetworkManager.service
+   
     groupadd -g $HPC_GID $HPC_GROUP
 
     # Don't require password for HPC user sudo
@@ -279,7 +278,8 @@ elif [ "$SHARED_STORAGE" == "otherstorage" ]; then
 fi
 
 setup_intel_mpi
-
+systemctl disable NetworkManager.service
+systemctl stop NetworkManager.service
 #install_blobxfer
 
 if [ -n "$POST_INSTALL_COMMAND" ]; then

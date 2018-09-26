@@ -177,7 +177,7 @@ nis_server()
 	systemctl stop NetworkManager.service
 	systemctl disable NetworkManager.service
 	systemctl start ypbind 
-	service NetworkManager start
+	systemctl start NetworkManager.service
 	cd /var/yp
 	/usr/lib64/yp/makedbm -u ${NIS_DOMAIN}/hosts.byname> mymap.temp
 	create_nismap
