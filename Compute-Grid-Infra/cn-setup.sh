@@ -182,8 +182,7 @@ setup_nisclient()
 	setup_nisdns
 	systemctl start rpcbind ypbind 
 	systemctl enable rpcbind ypbind
-	systemctl stop NetworkManager.service
-	systemctl disable NetworkManager.service
+	systemctl stop NetworkManager.service	
 	systemctl restart ypbind 
 	systemctl start NetworkManager.service
 	chkconfig ypbind on
@@ -210,7 +209,7 @@ setup_user()
     echo "$NFS_SERVER_NAME:$NAS_DEVICE $NAS_MOUNT nfs rsize=65536,wsize=65536,_netdev,nofail 0 0" >> /etc/fstab
 	mount -a
 	mount
-   
+   systemctl disable NetworkManager.service
     groupadd -g $HPC_GID $HPC_GROUP
 
     # Don't require password for HPC user sudo
