@@ -155,15 +155,20 @@ EOF
 	#sed -i  "s/networks:   files/networks:   files nis [NOTFOUND=return]/g"  /etc/nsswitch.conf
 	#sed -i  "s/hosts:      files dns/hosts: files dns [NOTFOUND=return]/g"  /etc/nsswitch.conf
     echo "in set_DNS, updated nsswitch resolv.conf, restarting network service"
-	service network restart
+	
 }
 
-install_lis_in_cron()
+start_networkservice_in_cron()
 {
-	crontab -l > NIScron
-	echo "@reboot /root/restart_ypbind.sh >>/root/NISlog.txt" >> NIScron
-	crontab NIScron
-	rm NIScron
+	cat >  /root/start_networknamager.sh << "EOF"
+#!/bin/bash
+ systemctl start NetworkManager.service
+EOF
+	chmod 700 /root/start_networknamager.sh
+	crontab -l > Networkcron
+	echo "@reboot /root/start_networknamager.sh >>/root/log.txt" >> Networkcron
+	crontab Networkcron
+	rm Networkcron
 }
 
 setup_nisclient()
@@ -176,11 +181,13 @@ setup_nisclient()
 	setup_nisdns
 	systemctl start rpcbind ypbind 
 	systemctl enable rpcbind ypbind
-	service NetworkManager stop
+	systemctl stop NetworkManager.service
+	systemctl disable NetworkManager.service
 	systemctl restart ypbind 
 	service NetworkManager start
 	chkconfig ypbind on
 	chkconfig rpcbind on
+	start_networkservice_in_cron
 	
 }
 
