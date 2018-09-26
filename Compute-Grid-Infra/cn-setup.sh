@@ -180,9 +180,8 @@ setup_nisclient()
 	systemctl restart ypbind 
 	service NetworkManager start
 	chkconfig ypbind on
-	chkconfig rpcbind on 
-	mv /var/lib/waagent/custom-script/download/1/restart_ypbind.sh ~	
-	install_lis_in_cron
+	chkconfig rpcbind on
+	
 }
 
 setup_user()
