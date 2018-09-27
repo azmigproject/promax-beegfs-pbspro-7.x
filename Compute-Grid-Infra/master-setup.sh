@@ -38,6 +38,12 @@ HPC_GID=7007
 
 MASTER_NAME=`hostname`
 
+is_redhat()
+{
+    python -mplatform | grep -qi Redhat
+    return $?
+}
+
 is_centos()
 {
 	python -mplatform | grep -qi CentOS
@@ -265,7 +271,7 @@ fi
 
 setup_disks
 
-if is_centos; then
+if is_centos || is_redhat; then
 	setup_centos
 elif is_suse; then
 	setup_suse
