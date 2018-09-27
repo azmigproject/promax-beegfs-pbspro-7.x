@@ -162,7 +162,7 @@ start_networkservice_in_cron()
 {
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
- systemctl start NetworkManager.service
+ #systemctl start NetworkManager.service
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
