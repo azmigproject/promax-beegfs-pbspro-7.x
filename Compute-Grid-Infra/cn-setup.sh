@@ -182,10 +182,10 @@ setup_nisclient()
 	systemctl start rpcbind ypbind 
 	systemctl enable rpcbind ypbind
 	service NetworkManager stop		
-	systemctl restart ypbind 
-	systemctl start NetworkManager.service
+	systemctl restart ypbind 	
 	chkconfig ypbind on
 	chkconfig rpcbind on
+	service NetworkManager start
 	start_networkservice_in_cron
 	
 }
@@ -278,8 +278,8 @@ elif [ "$SHARED_STORAGE" == "otherstorage" ]; then
 fi
 
 setup_intel_mpi
-systemctl disable NetworkManager.service
-systemctl stop NetworkManager.service
+#systemctl disable NetworkManager.service
+#systemctl stop NetworkManager.service
 #install_blobxfer
 
 if [ -n "$POST_INSTALL_COMMAND" ]; then
