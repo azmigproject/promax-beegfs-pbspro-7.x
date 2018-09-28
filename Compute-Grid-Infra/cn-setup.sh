@@ -276,8 +276,8 @@ elif [ "$SHARED_STORAGE" == "otherstorage" ]; then
 fi
 
 setup_intel_mpi
-systemctl stop NetworkManager.service
-systemctl disable NetworkManager.service
+#systemctl stop NetworkManager.service
+#systemctl disable NetworkManager.service
 #install_blobxfer
 
 if [ -n "$POST_INSTALL_COMMAND" ]; then
