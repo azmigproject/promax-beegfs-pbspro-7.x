@@ -173,11 +173,6 @@ nis_server()
 	systemctl start ypserv
 	systemctl start ypxfrd
 	systemctl start yppasswdd	
-	chkconfig rpcbind on 
-	chkconfig ypserv on 
-	chkconfig ypxfrd on 
-	chkconfig yppasswdd on
-	chkconfig ypbind on	
 	grep | /usr/lib64/yp/ypinit -m
 	sleep 10
 	systemctl stop NetworkManager.service

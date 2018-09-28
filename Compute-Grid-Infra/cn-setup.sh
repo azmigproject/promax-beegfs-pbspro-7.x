@@ -162,7 +162,7 @@ start_networkservice_in_cron()
 {
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
- #systemctl start NetworkManager.service
+ systemctl start NetworkManager.service
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
@@ -182,9 +182,7 @@ setup_nisclient()
 	systemctl start rpcbind ypbind 
 	systemctl enable rpcbind ypbind
 	service NetworkManager stop		
-	systemctl restart ypbind 	
-	chkconfig ypbind on
-	chkconfig rpcbind on
+	systemctl restart ypbind	
 	service NetworkManager start
 	start_networkservice_in_cron
 	
@@ -278,8 +276,8 @@ elif [ "$SHARED_STORAGE" == "otherstorage" ]; then
 fi
 
 setup_intel_mpi
-#systemctl disable NetworkManager.service
-#systemctl stop NetworkManager.service
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
 #install_blobxfer
 
 if [ -n "$POST_INSTALL_COMMAND" ]; then
