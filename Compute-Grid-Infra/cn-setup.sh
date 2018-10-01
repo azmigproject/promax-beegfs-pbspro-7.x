@@ -162,7 +162,12 @@ start_networkservice_in_cron()
 {
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
- systemctl start NetworkManager.service
+service NetworkManager stop
+systemctl restart ypbind
+mount -a
+systemctl start NetworkManager.service
+/etc/init.d/pbs start
+
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
@@ -286,6 +291,7 @@ if [ -n "$POST_INSTALL_COMMAND" ]; then
 fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
-
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
 shutdown -r +1 &
 exit 0
