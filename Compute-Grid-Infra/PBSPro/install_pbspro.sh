@@ -144,12 +144,8 @@ EOF
     else
 
 		set-hostname
-
-        yum install -y hwloc-devel expat-devel tcl-devel expat
-
-        
+        yum install -y hwloc-devel expat-devel tcl-devel expat        
 	    rpm -ivh --nodeps /mnt/CentOS_7/pbspro-execution-14.1.0-13.1.x86_64.rpm
-
         cat > /etc/pbs.conf << EOF
 PBS_SERVER=$MASTER_HOSTNAME
 PBS_START_SERVER=0
@@ -164,7 +160,6 @@ EOF
 
 		echo '$clienthost '$MASTER_HOSTNAME > /var/spool/pbs/mom_priv/config
         /etc/init.d/pbs start
-
 		# setup the self register script
 		cp pbs_selfregister.sh /etc/init.d/pbs_selfregister
 		chmod +x /etc/init.d/pbs_selfregister
