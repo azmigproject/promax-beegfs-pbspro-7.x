@@ -6,7 +6,7 @@ log()
 	echo "$1"
 	
 }
-
+usage() { echo "Usage: $0 []"}
 while getopts :a:k:j:l:u:t:p optname; do
   log "Option $optname set with value ${OPTARG}"  
   case $optname in
@@ -150,7 +150,14 @@ start_networkservice_in_cron()
 {
 	cat >  /root/start_networknamager.sh << "EOF"
 #!/bin/bash
- systemctl start NetworkManager.service
+service NetworkManager stop
+systemctl start rpcbind
+systemctl start ypserv
+systemctl start ypxfrd
+systemctl start yppasswdd
+sleep 10
+systemctl restart ypbind
+systemctl start NetworkManager.service
 EOF
 	chmod 700 /root/start_networknamager.sh
 	crontab -l > Networkcron
@@ -245,7 +252,6 @@ setup_centos()
     # disable selinux
     sed -i 's/enforcing/disabled/g' /etc/selinux/config
     setenforce permissive
-
 	mount_nfs
 	setup_user
 	setup_blobxfer
