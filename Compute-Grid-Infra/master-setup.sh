@@ -6,7 +6,6 @@ log()
 	echo "$1"
 	
 }
-usage() { echo "Usage: $0 []"}
 while getopts :a:k:j:l:u:t:p optname; do
   log "Option $optname set with value ${OPTARG}"  
   case $optname in
