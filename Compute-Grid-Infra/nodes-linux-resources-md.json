@@ -166,17 +166,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('namingInfix')]",
             "adminUsername": "[parameters('nodeOSSettings').adminUserName]",
-            "linuxConfiguration": {
-              "disablePasswordAuthentication": "true",
-              "ssh": {
-                "publicKeys": [
-                  {
-                    "path": "[variables('sshKeyPath')]",
-                    "keyData": "[parameters('nodeOSSettings').sshKeyData]"
-                  }
-                ]
-              }
-            }
+            "adminPassword": "[parameters('adminPassword')]"
           },
           "storageProfile": {
             "imageReference": "[parameters('nodeOSSettings').imageReference]",
