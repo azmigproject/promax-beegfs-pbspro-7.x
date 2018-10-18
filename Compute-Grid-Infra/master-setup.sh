@@ -116,6 +116,8 @@ mount_nfs()
     systemctl start nfs-server || echo "Already enabled"
 		
 }
+
+####################################################################
 create_nismap()
 {		
 	IFS=',' read -ra ADDR <<< "$ADDRESS_SPACE_LIST"
@@ -145,6 +147,7 @@ create_nismap()
         done
 }
 
+###############################################################################
 start_networkservice_in_cron()
 {
 	cat >  /root/start_networknamager.sh << "EOF"
@@ -206,8 +209,6 @@ nis_server()
 	make
 	start_networkservice_in_cron
 }
-install_jetpack
-nis_server
 
 
 #####################################################################
@@ -284,7 +285,8 @@ if [ -e "$SETUP_MARKER" ]; then
     echo "We're already configured, exiting..."
     exit 0
 fi
-
+install_jetpack
+nis_server
 setup_disks
 
 if is_centos || is_redhat; then
@@ -296,5 +298,5 @@ fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
 
-shutdown -r +1 &
-exit 0
+#shutdown -r +1 &
+#exit 0
