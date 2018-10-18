@@ -164,6 +164,18 @@ EOF
 	crontab Networkcron
 	rm Networkcron
 }
+
+#####################################################################
+install_jetpack()
+{
+ cd ~
+ wget https://jetpackforcentos.blob.core.windows.net/jetpack7/jetpack-7.5.1-centos-7.tar.gz
+ tar -xf jetpack-7.5.1-centos-7.tar.gz
+ cd jetpack
+ ./install.sh 
+}
+
+######################################################################
 nis_server()
 {
 	
@@ -194,17 +206,9 @@ nis_server()
 	make
 	start_networkservice_in_cron
 }
+install_jetpack
 nis_server
 
-#####################################################################
-install_jetpack()
-{
- cd ~
- wget https://jetpackforcentos.blob.core.windows.net/jetpack7/jetpack-7.5.1-centos-7.tar.gz
- tar -xf jetpack-7.5.1-centos-7.tar.gz
- cd jetpack
- ./install.sh 
-}
 
 #####################################################################
 mount_nfs_suse()
@@ -282,7 +286,7 @@ if [ -e "$SETUP_MARKER" ]; then
 fi
 
 setup_disks
-install_jetpack
+
 if is_centos || is_redhat; then
 	setup_centos
 elif is_suse; then
