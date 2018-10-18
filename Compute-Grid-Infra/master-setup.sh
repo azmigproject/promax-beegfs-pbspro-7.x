@@ -195,6 +195,19 @@ nis_server()
 	start_networkservice_in_cron
 }
 nis_server
+
+#####################################################################
+install_jetpack()
+{
+ cd ~
+ wget https://jetpackforcentos.blob.core.windows.net/jetpack7/jetpack-7.5.1-centos-7.tar.gz
+ tar -xf jetpack-7.5.1-centos-7.tar.gz
+ cd jetpack
+ ./install.sh
+ shutdown -r +1
+}
+
+#####################################################################
 mount_nfs_suse()
 {
 	log "install NFS"
@@ -270,7 +283,7 @@ if [ -e "$SETUP_MARKER" ]; then
 fi
 
 setup_disks
-
+install_jetpack
 if is_centos || is_redhat; then
 	setup_centos
 elif is_suse; then
