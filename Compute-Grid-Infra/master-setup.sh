@@ -203,8 +203,7 @@ install_jetpack()
  wget https://jetpackforcentos.blob.core.windows.net/jetpack7/jetpack-7.5.1-centos-7.tar.gz
  tar -xf jetpack-7.5.1-centos-7.tar.gz
  cd jetpack
- ./install.sh
- shutdown -r +1
+ ./install.sh 
 }
 
 #####################################################################
@@ -293,5 +292,5 @@ fi
 # Create marker file so we know we're configured
 touch $SETUP_MARKER
 
-#shutdown -r +1 &
-#exit 0
+shutdown -r +1 &
+exit 0
